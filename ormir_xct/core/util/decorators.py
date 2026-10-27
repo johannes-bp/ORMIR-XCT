@@ -111,7 +111,13 @@ def _convert_to_medicalvolume(image, accept_none=True):
         return image
     elif isinstance(image, tuple) and len(image) == 2 and isinstance(image[0], np.ndarray):
         omidsmed = MedicalVolume(image[0], np.eye(4))
-        omidsmed.omids_header, omidsmed.patient_header, omidsmed.extra_header = separate_headers(image[1])
+        header = image[1] if isinstance(image[1], dict) else {}
+        if header:
+            omidsmed.omids_header, omidsmed.patient_header, omidsmed.extra_header = separate_headers(header)
+        else:
+            omidsmed.omids_header = {}
+            omidsmed.patient_header = {}
+            omidsmed.extra_header = {}
         return omidsmed
     elif isinstance(image, sitk.Image):
         return MedicalVolume.from_sitk(image)
@@ -431,11 +437,11 @@ def request_tuple(_func=None, *, image_arg_names=None, convert_result=True, acce
             convert_to = None
             
             # Convert to list for easier manipulation
-            arg_names = image_arg_names if image_arg_names is not None else []
+            arg_names = list(image_arg_names) if image_arg_names is not None else []
 
             # Default to the first argument if no names are provided
             if len(arg_names) == 0:
-                arg_names.append([func.__code__.co_varnames[0]])
+                arg_names.append(func.__code__.co_varnames[0])
 
             for i, arg_name in enumerate(func.__code__.co_varnames):
                 if arg_name in arg_names:
